@@ -1,0 +1,111 @@
+---
+title: "Texas Election Lawsuit"
+subtitle: "2020"
+always_allow_html: yes
+output:
+  prettydoc::html_pretty:
+    theme: tactile
+    highlight: github
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F, eval = T, error = F, cache = T)
+```
+
+```{r loads}
+# Install and load pacman if not already installed
+if (!require("pacman")) install.packages("pacman")
+library(pacman)
+# Load packages and install if not already 
+p_load(tidyverse, ggplot2, ggplotly, maps,usmap)
+#load data
+states_data <- readxl::read_excel("texas_lawsuit_states_status.xlsx", sheet = "states")
+defs <- readxl::read_excel("texas_lawsuit_states_status.xlsx", sheet = "definitions")
+
+states_data_df <- states_data %>%
+  mutate(color_num = case_when(
+    is.na(status) ~ 0,
+    status == "plaintiff" ~ 1,
+    status == "amicus curiae - plaintiff" ~ 10,
+    status == "intervene as plaintiff" ~ 20,
+    status == "motion filed late" ~ 30,
+    status == "defendant - amicus curiae - plaintiff" ~ 50,
+    status == "amicus curiae - defendant" ~ 80,
+    status == "defendant" ~ 100,
+    
+  ),
+  status = ifelse(is.na(status),"no side announced",status),
+  status = as.factor(status)) %>%
+  rename(state = Name) 
+
+```
+
+# Here is what we know
+
+Things are changing very rapidly and I recommend you check out this link^[https://www.supremecourt.gov/search.aspx?filename=/docket/docketfiles/html/public/22o155.html] to stay up to date; things are happening so fast that this publishing was old by the time I finished writing it! 
+
+
+<center>
+
+```{r map, fig.align="left"}
+
+
+
+us_map <- usmap::us_map() # used to add map scale
+#https://stackoverflow.com/questions/61330372/discrete-values-in-us-map-legend-using-plot-usmap 
+usmap::plot_usmap(data = states_data_df, values = "status", labels = T)+
+  labs(fill = 'Texas Election Lawsuit') + 
+  scale_fill_manual(
+    #http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
+    values = c(`NA` = "white",
+               "plaintiff"="firebrick4",
+               "amicus curiae - plaintiff" = "firebrick1",
+               "intervene as plaintiff"= "firebrick",
+               "motion filed late" = "pink",
+               "defendant - amicus curiae - plaintiff"= "purple",
+               "amicus curiae - defendant"= "lightblue",
+               "defendant" = "darkblue"),
+    name = "status"
+  ) +
+
+  # put legend at the bottom, adjust legend title and text font sizes
+  theme(legend.position = "right",
+        legend.title=element_text(size=12), 
+        legend.text=element_text(size=10))
+```
+
+
+</center>
+
+
+### Here are a few terms defined for us non-legal persons:
+
+```{r}
+DT::datatable(defs,rownames= FALSE,
+          options = list(dom = 'Bfrtip',buttons = c('csv', 'excel'),autoWidth = TRUE,
+          pageLength = 2,
+          fixedColumns = TRUE))
+```
+
+<br>
+
+## Source Data
+
+```{r table, fig.align="left"}
+DT::datatable(states_data, extensions = 'Buttons',rownames= FALSE,
+          options = list(dom = 'Bfrtip',buttons = c('csv', 'excel'),autoWidth = TRUE, 
+          columnDefs = (list(list(width = '10px', targets =c(5))
+                             )),
+          pageLength = 10,
+          fixedColumns = TRUE
+          ,scrollX = TRUE
+          ))
+
+```
+
+<small> Data Updated: `r Sys.Date()` </small>
+
+<div style="position: fixed; bottom: 15px; right:10px;">
+  <div id="feedback"><a href="https://github.com/cluelessgumshoe/serial_killers_project"> <B>CLUELESSGUMSHOE</B></a></div>
+</div>
